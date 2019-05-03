@@ -11,7 +11,7 @@ import (
 var db *sql.DB
 
 func main() {
-	connStr := "postgres://postgres:postgres_tsp@172.17.0.2/postgres?sslmode=disable"
+	connStr := "postgres://postgres:postgres_tsp@172.17.0.14/postgres?sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 
 	if err != nil {
@@ -23,5 +23,8 @@ func main() {
 
 
 	http.HandleFunc("/api/v1/upload", state.UploadJson)
+	http.HandleFunc("/api/v1/getResults", state.GetResults)
+	log.Printf("Listening on 0.0.0.0:12538")
 	_ = http.ListenAndServe(":12538", nil)
+
 }
