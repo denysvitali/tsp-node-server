@@ -78,6 +78,8 @@ type GenericResponse struct {
 	 if err != nil {
 		 log.Error("Error is: ", err)
 	 }
+
+	 _ = statement.Close()
 }
 
 func (s State) GetResults(w http.ResponseWriter, r *http.Request) {
