@@ -29,6 +29,7 @@ type Algorithm struct {
 
 type TSPSol struct {
 	From string `json:"from"`
+	Commit string `json:"commit"`
 	Problem string `json:"problem"`
 	Time_Elapsed int64 `json:"time_elapsed"`
 	Algorithms []Algorithm `json:"algorithms"`
@@ -65,7 +66,7 @@ type GenericResponse struct {
 	mjson, _ := json.Marshal(tspSol)
 
 	fmt.Printf("TSP Sol: %v\n", tspSol)
-	statement, err:= s.Db.Prepare("INSERT INTO tsp_results (problem, \"from\", time_elapsed, rl, \"json\") VALUES ($1," +
+	statement, err:= s.Db.Prepare("INSERT INTO tsp_results (problem, commit, \"from\", time_elapsed, rl, \"json\") VALUES ($1," +
 		"$2, $3, $4, $5);")
 
 	 if err != nil {
@@ -73,7 +74,7 @@ type GenericResponse struct {
 		 return
 	 }
 
-	_, err = statement.Exec(tspSol.Problem, tspSol.From, tspSol.Time_Elapsed, tspSol.Rl, string(mjson))
+	_, err = statement.Exec(tspSol.Problem, tspSol.Commit, tspSol.From, tspSol.Time_Elapsed, tspSol.Rl, string(mjson))
 
 	 if err != nil {
 		 log.Error("Error is: ", err)
@@ -83,7 +84,7 @@ type GenericResponse struct {
 }
 
 func (s State) GetResults(w http.ResponseWriter, r *http.Request) {
-	statement, err:= s.Db.Prepare("SELECT * FROM tsp_results WHERE problem=$1 ORDER BY rl ASC");
+		statement, err:= s.Db.Prepare("SELECT id, commit, \"from\", problem, time_elapsed, rl, json, received_on FROM tsp_results WHERE problem=$1 ORDER BY rl ASC, time_elapsed ASC");
 	if err != nil {
 		log.Error("Invalid prepared statement: ", err)
 		return
@@ -100,6 +101,7 @@ func (s State) GetResults(w http.ResponseWriter, r *http.Request) {
 		Id int32 `json:"id"`
 		From string `json:"from"`
 		Problem string `json:"problem"`
+		Commit string `json:"commit"`
 		Time_Elapsed int64 `json:"time_elapsed"`
 		Rl int64 `json:"rl"`
 		Json string `json:"json"`
@@ -108,6 +110,7 @@ func (s State) GetResults(w http.ResponseWriter, r *http.Request) {
 	result.Next()
 	err = result.Scan(
 		&mstruct.Id,
+		&mstruct.Commit,
 		&mstruct.From,
 		&mstruct.Problem,
 		&mstruct.Time_Elapsed,
