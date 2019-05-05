@@ -66,8 +66,8 @@ type GenericResponse struct {
 	mjson, _ := json.Marshal(tspSol)
 
 	fmt.Printf("TSP Sol: %v\n", tspSol)
-	statement, err:= s.Db.Prepare("INSERT INTO tsp_results (problem, commit, \"from\", time_elapsed, rl, \"json\") VALUES ($1," +
-		"$2, $3, $4, $5);")
+	statement, err:= s.Db.Prepare("INSERT INTO tsp_results (problem, \"commit\", \"from\", time_elapsed, rl, \"json\") VALUES ($1," +
+		"$2, $3, $4, $5, $6);")
 
 	 if err != nil {
 		 log.Error("Unable to create statement: ", err)
@@ -84,16 +84,42 @@ type GenericResponse struct {
 }
 
 func (s State) GetResults(w http.ResponseWriter, r *http.Request) {
-		statement, err:= s.Db.Prepare("SELECT id, commit, \"from\", problem, time_elapsed, rl, json, received_on FROM tsp_results WHERE problem=$1 ORDER BY rl ASC, time_elapsed ASC");
-	if err != nil {
-		log.Error("Invalid prepared statement: ", err)
-		return
+	var err error
+	var result *sql.Rows
+	var statement *sql.Stmt
+
+	if 	r.URL.Query().Get("problem") != "" &&
+		r.URL.Query().Get("commit") != "" {
+		statement, err = s.Db.Prepare("SELECT id, \"commit\", \"from\", problem, time_elapsed, rl, json, received_on FROM tsp_results WHERE problem=$1 AND \"commit\"=$2 ORDER BY rl ASC, time_elapsed ASC");
+		if err != nil {
+			log.Error("Invalid prepared statement: ", err)
+			return
+		}
+
+		result, err = statement.Query(r.URL.Query().Get("problem"),
+			r.URL.Query().Get("commit"))
+
+		if err != nil {
+			log.Error("Unable to get results...", err)
+			return
+		}
+	} else {
+		statement, err = s.Db.Prepare("SELECT id, \"commit\", \"from\", problem, time_elapsed, rl, json, received_on FROM tsp_results WHERE problem=$1 ORDER BY rl ASC, time_elapsed ASC");
+		if err != nil {
+			log.Error("Invalid prepared statement: ", err)
+			return
+		}
+
+		result, err = statement.Query(r.URL.Query().Get("problem"))
+
+		if err != nil {
+			log.Error("Unable to get results...", err)
+			return
+		}
 	}
 
-	result, err := statement.Query(r.URL.Query().Get("problem"))
-
-	if err != nil {
-		log.Error("Unable to get results...", err)
+	if statement == nil {
+		log.Error("Statement cannot be nil");
 		return
 	}
 
@@ -101,7 +127,7 @@ func (s State) GetResults(w http.ResponseWriter, r *http.Request) {
 		Id int32 `json:"id"`
 		From string `json:"from"`
 		Problem string `json:"problem"`
-		Commit string `json:"commit"`
+		Commit *string `json:"commit"`
 		Time_Elapsed int64 `json:"time_elapsed"`
 		Rl int64 `json:"rl"`
 		Json string `json:"json"`
